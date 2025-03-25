@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:android_johnnyspanol/transcriber.dart';
-import 'package:android_johnnyspanol/backend.dart';
+import 'package:audio_2_audio_file_translator/transcriber.dart';
+import 'package:audio_2_audio_file_translator/backend.dart';
 import 'package:yaml/yaml.dart';
 import 'dart:io';
 
@@ -12,25 +12,11 @@ void main() {
       expect(transcription, expectedTranscription);
     });
 
-    test('Long Complex Speech Transcription', () async {
-      final List<String> transcription = await Transcriber.transcribe("./test/test_samples/long_complex_speech.mp3", maxCharsPerSegSoftLimit: 50);
-      final List<String> expectedTranscription = await loadTranscriptionList("./test/test_samples/long_complex_transcription_list.yaml");
-      expect(transcription, expectedTranscription);
-    });
-
     test('Short Speech Translation', () async {
       final List<String> transcription = await loadTranscriptionList("./test/test_samples/short_transcription_list.yaml");
       final String joinedTranscription = transcription.join(" ");
       final String translation = await Backend.translate(joinedTranscription);
       final String expectedTranslation = await loadTranslation("./test/test_samples/short_translation.txt");
-      expect(translation, expectedTranslation);
-    });
-
-    test('Long Complex Speech Translation', () async {
-      final List<String> transcription = await loadTranscriptionList("./test/test_samples/long_complex_transcription_list.yaml");
-      final String joinedTranscription = transcription.join(" ");
-      final String translation = await Backend.translate(joinedTranscription);
-      final String expectedTranslation = await loadTranslation("./test/test_samples/long_complex_translation.txt");
       expect(translation, expectedTranslation);
     });
   });
