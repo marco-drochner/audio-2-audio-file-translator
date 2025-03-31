@@ -142,16 +142,11 @@ class Transcriber {
   /// specified by the user. The function returns the transcribed text as a string.
   ///
   /// Parameters:
-  /// - `fileName`: The path to the audio file that needs to be transcribed.
-  /// - `languageModel`: The language model to be used for transcription. This
-  ///   parameter is optional and defaults to a standard model if not provided.
+  /// - `filePath`: The path to the audio file that needs to be transcribed.
+  /// -`maxCharsPerSegSoftLimit`: The maximum number of characters allowed per segment. Optional parameter, default is 3000
   ///
   /// Returns:
-  /// - A `String` containing the transcribed text.
-  ///
-  /// Throws:
-  /// - `FileNotFoundException` if the specified audio file does not exist.
-  /// - `TranscriptionException` if an error occurs during the transcription process.
+  /// - The transcription split up into a list of Strings (for buffered work).
   static Future<List<String>> transcribe(String filePath, {int maxCharsPerSegSoftLimit = 3000}) async {
     await _ensureInitialized();
     final interactionID = await createElevateInteraction();
