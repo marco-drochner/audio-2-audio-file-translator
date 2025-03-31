@@ -1,8 +1,9 @@
-import 'package:android_johnnyspanol/transcriber.dart';
+import 'transcriber.dart';
+import 'merge_helper.dart';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:aws_polly_api/polly-2016-06-10.dart';
-// import 'package:path_provider/path_provider.dart';//???!!!
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -73,6 +74,7 @@ class Backend {
       return utf8.decode(latin1.encode(inLatin1));
     } else {
       if (kDebugMode) {
+        print("DeepL translation status code:");
         print(response.statusCode);
         print(response.reasonPhrase);
       }
@@ -93,9 +95,6 @@ class Backend {
         voiceId: _voiceID,
         engine: _voiceEngine,
       );
-      if (kDebugMode) {
-        print(result.requestCharacters);
-      }
       return result.audioStream!;
     } catch (e) {
       if (kDebugMode) {
@@ -117,45 +116,25 @@ class Backend {
     }
   }
 
-  static Future<void> doIt() async {
+  static Future<void> doIt(String sourceAudioPath, File outputFile) async {
     await _ensureInitialized();
     onProcessingStateChange?.call(true);
     // English to Spanish!!!???
-    final String jobID = DateTime.now().millisecondsSinceEpoch.toString();
-    String inputMP3 = await chooseFileAndGetPath();
-    List<String> transcriptionSegments = await Transcriber.transcribe(inputMP3);
-    List<String> segmentNames = [];
+    List<String> transcriptionSegments = await Transcriber.transcribe(sourceAudioPath, maxCharsPerSegSoftLimit: 10);
+    List<Uint8List> speechStreams = [];
     for (int i = 0; i < transcriptionSegments.length; i++) {
+      // THIS SHOULD BE DONE IN PARALLEL
       String segment = transcriptionSegments[i];
       String translation = await translate(segment);
-      final String name = "$i-$jobID.mp3";
-      segmentNames.add(name);
-      uploadAudio(await toSpeech(translation), name);
+      Uint8List speechStream = await toSpeech(translation);
+      speechStreams.add(speechStream);
+    }
+    // When all the speech streams are ready, merge them
+    Uint8List mergedBytes = await MergeHelper.mergeMp3s(speechStreams);
+    outputFile.writeAsBytesSync(mergedBytes);
+    if (kDebugMode) {
+      print("Done. Output file path: ${outputFile.path}");
     }
     onProcessingStateChange?.call(false);
-  }
-
-  static Future<void> uploadAudio(Uint8List audioData, String fileName) async {
-    await _ensureInitialized();
-    final String url = "https://api.bytescale.com/v2/accounts/$bytescaleAccID/uploads/binary?fileName=$fileName";
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $bytescaleKey',
-        'Content-Type': 'audio/mpeg',
-      },
-      body: audioData,
-    );
-
-    if (response.statusCode == 200) {
-      if (kDebugMode) {
-        print('Audio uploaded successfully');
-      }
-    } else {
-      if (kDebugMode) {
-        print('Failed to upload audio: ${response.reasonPhrase}');
-      }
-    }
   }
 }
