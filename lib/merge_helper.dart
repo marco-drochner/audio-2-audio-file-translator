@@ -8,11 +8,10 @@ import 'package:permission_handler/permission_handler.dart';
 class MergeHelper {
   String status = "No files selected";
 
-  /// Merges multiple MP3 audios in list [audioStreams] in order into one.
+  /// Merges MP3 audios in list [audioStreams] for use 
+  /// for use aws polly outputs with 8000 Hz and 32 kbps.
   /// 
-  /// All mp3 files in [auidoStreams] must have the same sample rate and bitrate.
-  /// 
-  /// Returns a Uint8List of the merged MP3 audios.
+  /// Returns a Uint8List of the merged MP3.
   static Future<Uint8List> mergeMp3s(List<Uint8List> audioStreams) async {
     List<int> mergedData = [];
 
@@ -49,18 +48,9 @@ class MergeHelper {
   static int estimateFrameSize(List<int> bytes, int index) {
     if (index + 4 > bytes.length) return -1;
 
-    int bitrateIndex = (bytes[index + 2] >> 4) & 0x0F;
-    int sampleRateIndex = (bytes[index + 2] >> 2) & 0x03;
+    const int bitrate = 32000; // Fixed bitrate of 32 kbps
+    const int sampleRate = 8000; // Fixed sample rate of 8000 Hz
 
-    const List<int> bitrates = [
-      0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0
-    ];
-    const List<int> sampleRates = [44100, 48000, 32000, 0];
-
-    if (bitrateIndex == 0x0F || sampleRateIndex == 0x03) return -1;
-
-    int bitrate = bitrates[bitrateIndex] * 1000;
-    int sampleRate = sampleRates[sampleRateIndex];
     int padding = (bytes[index + 2] >> 1) & 0x01;
 
     return ((144 * bitrate) ~/ sampleRate) + padding;
